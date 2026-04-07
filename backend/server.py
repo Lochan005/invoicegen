@@ -45,7 +45,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-api_router = APIRouter(prefix="/api")
+# Prefix avoids Vercel + Next.js treating `/api/*` as framework routes (broken 500 HTML).
+api_router = APIRouter(prefix="/invoice-api")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -361,7 +362,12 @@ async def email_invoice_from_body(body: EmailInvoiceBody):
         "to": [body.recipient_email],
         "subject": subject,
         "html": html_content,
-        "attachments": [{"filename": f"invoice_{invoice.invoice_number}.pdf", "content": list(pdf_bytes)}],
+        "attachments": [
+            {
+                "filename": f"invoice_{invoice.invoice_number}.pdf",
+                "content": base64.b64encode(pdf_bytes).decode("utf-8"),
+            }
+        ],
     }
     try:
         email = await asyncio.to_thread(resend.Emails.send, params)
@@ -375,10 +381,10 @@ app.include_router(api_router)
 
 @app.get("/")
 async def root_index():
-    """Browser hits http://127.0.0.1:8000/ — all invoice routes live under /api."""
+    """Browser hits http://127.0.0.1:8000/ — routes live under /invoice-api/."""
     return {
         "service": "Invoice Generator API",
-        "api": "/api/",
+        "api": "/invoice-api/",
         "docs": "/docs",
         "hint": "Open the Next.js app (e.g. http://localhost:3000) for the UI; this server is API-only.",
     }

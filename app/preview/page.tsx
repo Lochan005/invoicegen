@@ -25,7 +25,7 @@ export default function PreviewPage() {
   const handleDownloadPdf = async () => {
     setDownloading(true);
     try {
-      const res = await fetch(apiUrl("/api/pdf"), {
+      const res = await fetch(apiUrl("/invoice-api/pdf"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(toInvoiceCreateBody(invoice)),
@@ -57,7 +57,7 @@ export default function PreviewPage() {
     }
     setEmailing(true);
     try {
-      const res = await fetch(apiUrl("/api/email-invoice"), {
+      const res = await fetch(apiUrl("/invoice-api/email-invoice"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

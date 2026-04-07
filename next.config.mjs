@@ -10,11 +10,11 @@ const withPWA = withPWAInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  /** Local dev: proxy /api to FastAPI so `next dev` can reach the same routes as Vercel. */
+  /** Local dev: proxy /invoice-api to FastAPI (matches vercel.json). */
   async rewrites() {
     const backend = process.env.BACKEND_PROXY_URL?.trim().replace(/\/+$/, "");
     if (!backend) return [];
-    return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
+    return [{ source: "/invoice-api/:path*", destination: `${backend}/invoice-api/:path*` }];
   },
 };
 

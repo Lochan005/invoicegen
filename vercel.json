@@ -12,11 +12,11 @@
   ],
   "routes": [
     {
-      "src": "/api",
+      "src": "/invoice-api",
       "dest": "/server.py"
     },
     {
-      "src": "/api/(.*)",
+      "src": "/invoice-api/(.*)",
       "dest": "/server.py"
     },
     {

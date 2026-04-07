@@ -10,13 +10,27 @@ function responseLooksLikeHtml(contentType: string | null, body: string): boolea
   return /^<!DOCTYPE\s+html/i.test(s) || /^<html[\s>]/i.test(s);
 }
 
+function localDevApiHint(): string {
+  return (
+    " On local dev: start FastAPI with `uvicorn backend.server:app --host 127.0.0.1 --port 8000`, " +
+    "set BACKEND_PROXY_URL=http://127.0.0.1:8000 in .env.local, then restart `npm run dev` (restarts pick up .env.local)."
+  );
+}
+
 export function summarizeApiFailure(res: Response, bodyText: string): string {
   const status = res.status;
-  if (responseLooksLikeHtml(res.headers.get("content-type"), bodyText)) {
+  const ct = res.headers.get("content-type");
+  if (responseLooksLikeHtml(ct, bodyText)) {
     if (status === 404) {
       return (
-        "Invoice API not found (404). On local dev, Next.js does not serve /api — start FastAPI " +
-        "(e.g. uvicorn backend.server:app --port 8000) and set BACKEND_PROXY_URL in .env.local. See README."
+        "Invoice API not found (404). On local dev, start FastAPI (uvicorn backend.server:app --port 8000) " +
+        "and set BACKEND_PROXY_URL in .env.local so /invoice-api is proxied. See README."
+      );
+    }
+    if (status === 500 || status === 502 || status === 503) {
+      return (
+        `Next.js could not reach the Python API (HTTP ${status}, HTML response).` +
+        localDevApiHint()
       );
     }
     return `Server returned HTML instead of JSON (HTTP ${status}). Is the API running?`;
@@ -25,7 +39,12 @@ export function summarizeApiFailure(res: Response, bodyText: string): string {
   try {
     const data = bodyText ? JSON.parse(bodyText) : {};
     const d = data?.detail;
-    if (typeof d === "string") return d;
+    if (typeof d === "string") {
+      if (d === "Internal Server Error" && status >= 500) {
+        return `${d}.${localDevApiHint()}`;
+      }
+      return d;
+    }
     if (Array.isArray(d))
       return d.map((x: { msg?: string }) => x?.msg || JSON.stringify(x)).join("; ");
     if (d != null && typeof d === "object") return JSON.stringify(d);
