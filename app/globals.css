@@ -1,0 +1,915 @@
+:root {
+  color-scheme: light;
+  --blue: #2563eb;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-700: #374151;
+  --gray-900: #111827;
+  --accent-blue: #7ba7c9;
+  --table-header: #dce8f2;
+  --green: #10b981;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Arial,
+    sans-serif;
+  background: var(--gray-100);
+  color: var(--gray-900);
+}
+
+.container {
+  max-width: 768px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: 12px;
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+}
+
+.topNav {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  flex-wrap: wrap;
+}
+
+.topNav a {
+  text-decoration: none;
+  color: var(--blue);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* --- Create page --- */
+
+.createPage {
+  padding-bottom: 24px;
+}
+
+.pageHeader {
+  margin-bottom: 16px;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.pageSubtitle {
+  font-size: 14px;
+  color: var(--gray-500);
+  margin: 4px 0 0;
+}
+
+.textLinkBtn {
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  min-height: unset;
+}
+
+.companyBanner {
+  background: #eff6ff;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 20px;
+  border-left: 4px solid var(--blue);
+}
+
+.companyBannerTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.companyBannerSub {
+  font-size: 12px;
+  color: #3b82f6;
+  margin-top: 2px;
+}
+
+.formSection {
+  margin-bottom: 20px;
+}
+
+.formSectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin: 0 0 8px 4px;
+}
+
+.formSectionCard {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+  padding: 16px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+}
+
+.formField {
+  margin-bottom: 12px;
+}
+
+.formLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin-bottom: 4px;
+}
+
+.formInput {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 15px;
+  color: var(--gray-900);
+  background: #fff;
+}
+
+.formTextarea {
+  min-height: 80px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.productPickerBtn {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  cursor: pointer;
+  margin-top: 0;
+}
+
+.productPickerValue {
+  color: var(--gray-900);
+  text-align: left;
+}
+
+.productPickerPlaceholder {
+  color: var(--gray-400);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 40%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.modalSheet {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 70dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.modalClose {
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--gray-500);
+  margin: 0;
+  padding: 4px;
+}
+
+.productList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.productOption {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--gray-100);
+  background: #fff;
+  padding: 14px 16px;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+  margin: 0;
+}
+
+.productOptionSelected {
+  background: #eff6ff;
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.lineItemCard {
+  background: var(--gray-50);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--gray-200);
+}
+
+.lineItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.lineItemTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--blue);
+}
+
+.lineItemRemove {
+  border: 0;
+  background: transparent;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0;
+  padding: 4px;
+}
+
+.gstRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 2px;
+}
+
+.gstLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 28px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.switchSlider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #d1d5db;
+  border-radius: 28px;
+  transition: 0.2s;
+}
+
+.switchSlider::before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+.switch input:checked + .switchSlider {
+  background: #93c5fd;
+}
+
+.switch input:checked + .switchSlider::before {
+  transform: translateX(20px);
+  background: var(--blue);
+}
+
+.qtyRateRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  align-items: end;
+}
+
+.amountBox {
+  text-align: center;
+  padding-bottom: 8px;
+}
+
+.amountLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin-bottom: 4px;
+}
+
+.amountValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.addLineBtn {
+  width: 100%;
+  min-height: 44px;
+  border: 1px dashed var(--blue);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--blue);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.totalsCard {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-100);
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+.totalValue {
+  color: var(--gray-900);
+  font-weight: 600;
+}
+
+.balanceRow {
+  border-bottom: 0;
+  border-top: 2px solid var(--blue);
+  margin-top: 4px;
+  padding-top: 12px;
+}
+
+.balanceLabel {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.balanceValue {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--blue);
+}
+
+.primaryBtn {
+  margin: 0;
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgb(37 99 235 / 30%);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bottomSpacer {
+  height: 40px;
+}
+
+/* --- Preview (invoice paper) --- */
+
+.previewScreen {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 24px);
+  background: var(--gray-100);
+  margin: -12px;
+  padding-bottom: 100px;
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px 8px;
+  background: var(--gray-100);
+}
+
+.previewHeaderTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.savedBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #ecfdf5;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--green);
+  font-weight: 600;
+}
+
+.savedBadgeIcon {
+  font-size: 14px;
+}
+
+.previewScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+}
+
+.previewScrollPad {
+  height: 120px;
+}
+
+.invoicePaper {
+  background: #fff;
+  border-radius: 2px;
+  padding: 20px;
+  border: 1px solid var(--gray-200);
+  box-shadow:
+    0 2px 8px rgb(0 0 0 / 10%),
+    0 0 0 1px rgb(0 0 0 / 2%);
+}
+
+.invoicePaperHeader {
+  display: flex;
+  justify-content: space-between;
+}
+
+.invoiceCompanyName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 3px;
+}
+
+.invoiceCompanyAddr {
+  font-size: 9px;
+  color: #555;
+  line-height: 14px;
+}
+
+.invoiceCompanyAbn {
+  font-size: 9px;
+  font-weight: 700;
+  color: #000;
+  margin-top: 1px;
+}
+
+.invoiceDivider {
+  height: 0.5px;
+  background: #ccc;
+  margin: 10px 0;
+}
+
+.taxInvoiceTitle {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--accent-blue);
+}
+
+.invoiceTwoCol {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.invoiceColLeft {
+  flex: 1;
+  min-width: 0;
+}
+
+.invoiceColRight {
+  flex: 1;
+  min-width: 0;
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+}
+
+.invoiceToLabel {
+  font-size: 9px;
+  font-weight: 400;
+  color: #999;
+  margin-bottom: 3px;
+}
+
+.invoiceClientName {
+  font-size: 11px;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 2px;
+}
+
+.invoiceClientAddr {
+  font-size: 9px;
+  color: #333;
+  line-height: 14px;
+}
+
+.invoiceClientEmail {
+  font-size: 9px;
+  color: var(--blue);
+  line-height: 14px;
+}
+
+.invoiceMetaRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 2px;
+  font-size: 9px;
+}
+
+.invoiceMetaLabel {
+  color: #999;
+  width: 55px;
+  flex-shrink: 0;
+}
+
+.invoiceMetaValue {
+  color: #000;
+  font-weight: 500;
+  text-align: right;
+}
+
+.invoiceTableWrap {
+  overflow-x: auto;
+  margin-bottom: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.invoiceTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9px;
+  min-width: 520px;
+}
+
+.invoiceTable thead th {
+  background: var(--table-header);
+  color: var(--accent-blue);
+  font-weight: 700;
+  font-size: 8px;
+  padding: 5px 6px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 0.5px solid #b0c4de;
+}
+
+.thGst,
+.thQty {
+  text-align: center;
+}
+
+.thRate,
+.thAmount {
+  text-align: right;
+}
+
+.invoiceTr .td {
+  padding: 5px 6px;
+  border-bottom: 0.5px dashed var(--gray-200);
+  color: #333;
+  vertical-align: middle;
+}
+
+.tdBold {
+  font-weight: 700;
+  color: #000;
+}
+
+.tdGst,
+.tdQty {
+  text-align: center;
+}
+
+.tdRate,
+.tdAmount {
+  text-align: right;
+}
+
+.thDate {
+  width: 12%;
+}
+.thProduct {
+  width: 15%;
+}
+.thDesc {
+  width: 28%;
+}
+.thGst {
+  width: 8%;
+}
+.thQty {
+  width: 6%;
+}
+.thRate {
+  width: 8%;
+}
+.thAmount {
+  width: 11%;
+}
+
+.invoiceTotals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-bottom: 10px;
+}
+
+.invoiceTotalsRow {
+  display: flex;
+  justify-content: space-between;
+  width: 55%;
+  max-width: 280px;
+  padding: 3px 0;
+  font-size: 9px;
+}
+
+.invoiceTotalsLabel {
+  color: #999;
+  font-weight: 400;
+}
+
+.invoiceTotalsValue {
+  color: #000;
+  font-weight: 500;
+}
+
+.invoiceTotalLine {
+  border-bottom: 0.5px solid #ccc;
+  padding-bottom: 6px;
+}
+
+.invoiceBalanceDueRow {
+  display: flex;
+  justify-content: space-between;
+  width: 55%;
+  max-width: 280px;
+  padding-top: 6px;
+  align-items: center;
+  font-size: 10px;
+}
+
+.invoiceBalanceDueLabel {
+  color: #999;
+  font-weight: 400;
+}
+
+.invoiceBalanceDueValue {
+  font-size: 16px;
+  font-weight: 800;
+  color: #000;
+}
+
+.invoiceBankBox {
+  background: #f0f0f0;
+  border-radius: 2px;
+  padding: 12px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+.invoiceBankTitle {
+  font-size: 9px;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 6px;
+}
+
+.invoiceBankText {
+  font-size: 9px;
+  font-weight: 700;
+  color: #000;
+  line-height: 16px;
+}
+
+.invoiceBankText.br {
+  line-height: 8px;
+}
+
+.invoiceFooterRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.invoiceFooterText {
+  font-size: 8px;
+  color: #ccc;
+}
+
+.previewActionBar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: 768px;
+  display: flex;
+  gap: 10px;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+  background: #fff;
+  border-top: 1px solid var(--gray-200);
+  z-index: 40;
+}
+
+.previewActionBtn {
+  flex: 1;
+  min-height: 48px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.previewDownloadBtn {
+  border: 1.5px solid var(--blue);
+  background: #fff;
+  color: var(--blue);
+}
+
+.previewEmailBtn {
+  border: 1.5px solid var(--blue);
+  background: var(--blue);
+  color: #fff;
+}
+
+.previewActionBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* --- Saved list --- */
+
+.savedPageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.savedNewBtn {
+  margin: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.savedCard {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.savedRowMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  width: 100%;
+  border: 0;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.savedIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue);
+  flex-shrink: 0;
+}
+
+.savedInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.savedTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.savedSub {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-top: 2px;
+}
+
+.savedDate {
+  font-size: 11px;
+  color: var(--gray-400);
+  margin-top: 2px;
+}
+
+.savedDeleteBtn {
+  margin: 0 14px 12px;
+  width: calc(100% - 28px);
+  border: 0;
+  border-radius: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-weight: 600;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
