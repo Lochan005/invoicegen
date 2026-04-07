@@ -39,8 +39,9 @@ export default function CreatePage() {
         return parseJsonResponse<{ next_number?: string }>(res);
       })
       .then((data) => {
-        if (cancelled || !data?.next_number) return;
-        setInvoice((prev) => ({ ...prev, invoice_number: data.next_number }));
+        const nextNumber = data?.next_number;
+        if (cancelled || !nextNumber) return;
+        setInvoice((prev) => ({ ...prev, invoice_number: nextNumber }));
       })
       .catch(() => {
         /* offline / API down */
