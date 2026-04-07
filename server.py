@@ -1,5 +1,12 @@
 """
 Vercel serverless entrypoint at repo root.
-Keeps implementation in backend/server.py so the Python function is discovered reliably.
+Implementation lives in backend/server.py; path fix is required so `backend` resolves on Vercel.
 """
-from backend.server import app  # noqa: F401
+import sys
+from pathlib import Path
+
+_root = Path(__file__).resolve().parent
+if str(_root) not in sys.path:
+    sys.path.insert(0, str(_root))
+
+from backend.server import app  # noqa: E402, F401
