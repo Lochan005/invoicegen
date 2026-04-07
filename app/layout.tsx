@@ -30,7 +30,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <header className="topNav">
             <Link href="/create">Create</Link>
             <Link href="/preview">Preview</Link>
-            <Link href="/saved">Saved</Link>
           </header>
           {children}
         </main>

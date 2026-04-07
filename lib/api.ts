@@ -16,7 +16,7 @@ export function summarizeApiFailure(res: Response, bodyText: string): string {
     if (status === 404) {
       return (
         "Invoice API not found (404). On local dev, Next.js does not serve /api — start FastAPI " +
-        "and set BACKEND_PROXY_URL in .env.local (e.g. http://127.0.0.1:8000). See README."
+        "(e.g. uvicorn backend.server:app --port 8000) and set BACKEND_PROXY_URL in .env.local. See README."
       );
     }
     return `Server returned HTML instead of JSON (HTTP ${status}). Is the API running?`;

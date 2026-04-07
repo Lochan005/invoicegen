@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiUrl, parseApiError, parseJsonResponse } from "../../lib/api";
+import { toInvoiceCreateBody } from "../../lib/apiPayload";
 import { BANK, COMPANY, computeTotals, emptyInvoice, type Invoice } from "../../lib/invoice";
 
 export default function PreviewPage() {
@@ -22,13 +23,13 @@ export default function PreviewPage() {
   }, []);
 
   const handleDownloadPdf = async () => {
-    if (!invoice.id) {
-      alert("Save First — Please save the invoice before downloading PDF.");
-      return;
-    }
     setDownloading(true);
     try {
-      const res = await fetch(apiUrl(`/api/invoices/${invoice.id}/pdf`), { method: "POST" });
+      const res = await fetch(apiUrl("/api/pdf"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(toInvoiceCreateBody(invoice)),
+      });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await parseJsonResponse<{ pdf_base64: string; filename: string }>(res);
       const byteChars = atob(data.pdf_base64);
@@ -49,10 +50,6 @@ export default function PreviewPage() {
   };
 
   const handleEmail = async () => {
-    if (!invoice.id) {
-      alert("Save First — Please save the invoice before emailing.");
-      return;
-    }
     const clientEmail = invoice.client_details?.company_email;
     if (!clientEmail) {
       alert('No Email — Please add a company email in the "Invoice To" section first.');
@@ -60,10 +57,11 @@ export default function PreviewPage() {
     }
     setEmailing(true);
     try {
-      const res = await fetch(apiUrl(`/api/invoices/${invoice.id}/email`), {
+      const res = await fetch(apiUrl("/api/email-invoice"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          invoice: toInvoiceCreateBody(invoice),
           recipient_email: clientEmail,
           subject: `Invoice #${invoice.invoice_number}`,
           message: `Please find attached Invoice #${invoice.invoice_number}.`,
@@ -84,14 +82,6 @@ export default function PreviewPage() {
     <div className="previewScreen">
       <header className="previewHeader">
         <h1 className="previewHeaderTitle">Invoice Preview</h1>
-        {invoice.id ? (
-          <div className="savedBadge">
-            <span className="savedBadgeIcon" aria-hidden>
-              ✓
-            </span>
-            <span className="savedBadgeText">Saved</span>
-          </div>
-        ) : null}
       </header>
 
       <div className="previewScroll">

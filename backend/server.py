@@ -1,22 +1,17 @@
 from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from typing import List
 import uuid
 from datetime import datetime, timezone
 import base64
 import io
 import resend
-
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -39,20 +34,17 @@ LOGO_PATH = Path(__file__).parent / "saitech_logo.png"
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-mongo_url = os.environ['MONGO_URL']
-# Longer timeouts help Atlas + cold starts on Vercel serverless
-client = AsyncIOMotorClient(
-    mongo_url,
-    serverSelectionTimeoutMS=10_000,
-    connectTimeoutMS=10_000,
-    socketTimeoutMS=45_000,
-)
-db = client[os.environ['DB_NAME']]
-
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=False,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 api_router = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -110,7 +102,8 @@ class Invoice(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-class EmailRequest(BaseModel):
+class EmailInvoiceBody(BaseModel):
+    invoice: InvoiceCreate
     recipient_email: EmailStr
     subject: str = ""
     message: str = ""
@@ -122,36 +115,9 @@ def calculate_totals(line_items: List[LineItem]):
     total = subtotal + gst_total
     return round(subtotal, 2), round(gst_total, 2), round(total, 2)
 
-def upload_to_drive(invoice: Invoice, pdf_bytes: bytes):
-    folder_id = os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
-    creds_json_str = os.environ.get('GOOGLE_CREDENTIALS_JSON')
-    if not folder_id or not creds_json_str:
-        logger.warning(f"Drive config missing (Folder ID: {bool(folder_id)}, Creds: {bool(creds_json_str)}). Skipping upload.")
-        return
-
-    try:
-        import json
-        SCOPES = ['https://www.googleapis.com/auth/drive.file']
-        creds_info = json.loads(creds_json_str)
-        creds = service_account.Credentials.from_service_account_info(creds_info, scopes=SCOPES)
-        service = build('drive', 'v3', credentials=creds)
-        file_name = f'Invoice_{invoice.invoice_number}.pdf'
-        
-        media = MediaIoBaseUpload(io.BytesIO(pdf_bytes), mimetype='application/pdf', resumable=True)
-        query = f"name='{file_name}' and '{folder_id}' in parents and trashed=false"
-        results = service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
-        items = results.get('files', [])
-        
-        if not items:
-            file_metadata = {'name': file_name, 'parents': [folder_id]}
-            service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-        else:
-            file_id = items[0]['id']
-            service.files().update(fileId=file_id, media_body=media).execute()
-            
-        logger.info(f"Successfully uploaded {file_name} to Drive.")
-    except Exception as e:
-        logger.error(f"Failed to upload to drive: {e}")
+def build_invoice(data: InvoiceCreate) -> Invoice:
+    subtotal, gst_total, total = calculate_totals(data.line_items)
+    return Invoice(**data.model_dump(), subtotal=subtotal, gst_total=gst_total, total=total)
 
 def generate_invoice_pdf(invoice: Invoice) -> bytes:
     buffer = io.BytesIO()
@@ -364,95 +330,21 @@ def generate_invoice_pdf(invoice: Invoice) -> bytes:
 async def root():
     return {"message": "Invoice Generator API"}
 
-@api_router.get("/invoices/next-number")
-async def get_next_invoice_number():
-    invoices = await db.invoices.find({}, {"invoice_number": 1, "_id": 0}).to_list(1000)
-    numbers = []
-    for inv in invoices:
-        try:
-            numbers.append(int(inv.get("invoice_number", "0")))
-        except (ValueError, TypeError):
-            pass
-    next_num = max(numbers) + 1 if numbers else 1
-    return {"next_number": str(next_num).zfill(3)}
-
-@api_router.get("/invoices")
-async def list_invoices():
-    invoices = await db.invoices.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
-    return invoices
-
-@api_router.get("/invoices/{invoice_id}")
-async def get_invoice(invoice_id: str):
-    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
-    if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-    return invoice
-
-@api_router.post("/invoices")
-async def create_invoice(data: InvoiceCreate):
-    subtotal, gst_total, total = calculate_totals(data.line_items)
-    payload = data.model_dump()
-    invoice = Invoice(**payload, subtotal=subtotal, gst_total=gst_total, total=total)
-    invoice_dict = invoice.model_dump()
-    await db.invoices.insert_one({**invoice_dict})
-    
-    # Upload to Google Drive in the background
-    try:
-        pdf_bytes = generate_invoice_pdf(invoice)
-        asyncio.create_task(asyncio.to_thread(upload_to_drive, invoice, pdf_bytes))
-    except Exception as e:
-        logger.error(f"Failed to initiate drive upload on create: {e}")
-        
-    return invoice_dict
-
-@api_router.put("/invoices/{invoice_id}")
-async def update_invoice(invoice_id: str, data: InvoiceCreate):
-    subtotal, gst_total, total = calculate_totals(data.line_items)
-    update_dict = data.model_dump()
-    update_dict.update(subtotal=subtotal, gst_total=gst_total, total=total, updated_at=datetime.now(timezone.utc).isoformat())
-    result = await db.invoices.update_one({"id": invoice_id}, {"$set": update_dict})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-        
-    updated_doc = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
-    
-    # Upload to Google Drive in the background
-    try:
-        invoice = Invoice(**updated_doc)
-        pdf_bytes = generate_invoice_pdf(invoice)
-        asyncio.create_task(asyncio.to_thread(upload_to_drive, invoice, pdf_bytes))
-    except Exception as e:
-        logger.error(f"Failed to initiate drive upload on update: {e}")
-        
-    return updated_doc
-
-@api_router.delete("/invoices/{invoice_id}")
-async def delete_invoice(invoice_id: str):
-    result = await db.invoices.delete_one({"id": invoice_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-    return {"status": "deleted"}
-
-@api_router.post("/invoices/{invoice_id}/pdf")
-async def generate_pdf(invoice_id: str):
-    invoice_data = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
-    if not invoice_data:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-    invoice = Invoice(**invoice_data)
+@api_router.post("/pdf")
+async def generate_pdf_from_body(data: InvoiceCreate):
+    invoice = build_invoice(data)
     pdf_bytes = generate_invoice_pdf(invoice)
-    pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
-    return {"pdf_base64": pdf_base64, "filename": f"invoice_{invoice.invoice_number}.pdf"}
+    pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
+    safe_name = (invoice.invoice_number or "draft").replace("/", "-")
+    return {"pdf_base64": pdf_base64, "filename": f"invoice_{safe_name}.pdf"}
 
-@api_router.post("/invoices/{invoice_id}/email")
-async def email_invoice(invoice_id: str, email_request: EmailRequest):
-    invoice_data = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
-    if not invoice_data:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-    invoice = Invoice(**invoice_data)
+@api_router.post("/email-invoice")
+async def email_invoice_from_body(body: EmailInvoiceBody):
+    invoice = build_invoice(body.invoice)
     pdf_bytes = generate_invoice_pdf(invoice)
 
-    subject = email_request.subject or f"Invoice #{invoice.invoice_number}"
-    message = email_request.message or f"Please find attached Invoice #{invoice.invoice_number}."
+    subject = body.subject or f"Invoice #{invoice.invoice_number}"
+    message = body.message or f"Please find attached Invoice #{invoice.invoice_number}."
     html_content = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <h2 style="color:#2563EB;">Invoice #{invoice.invoice_number}</h2>
         <p>{message}</p>
@@ -466,14 +358,14 @@ async def email_invoice(invoice_id: str, email_request: EmailRequest):
 
     params = {
         "from": SENDER_EMAIL,
-        "to": [email_request.recipient_email],
+        "to": [body.recipient_email],
         "subject": subject,
         "html": html_content,
         "attachments": [{"filename": f"invoice_{invoice.invoice_number}.pdf", "content": list(pdf_bytes)}],
     }
     try:
         email = await asyncio.to_thread(resend.Emails.send, params)
-        return {"status": "success", "message": f"Invoice emailed to {email_request.recipient_email}", "email_id": email.get("id")}
+        return {"status": "success", "message": f"Invoice emailed to {body.recipient_email}", "email_id": email.get("id")}
     except Exception as e:
         logger.error(f"Failed to send email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
@@ -490,16 +382,3 @@ async def root_index():
         "docs": "/docs",
         "hint": "Open the Next.js app (e.g. http://localhost:3000) for the UI; this server is API-only.",
     }
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=False,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
