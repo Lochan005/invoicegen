@@ -1,1 +1,9 @@
--r backend/requirements.txt
+# Vercel Python installs from this file at the repo root (do not use `-r` only — the
+# serverless build may not follow includes).
+fastapi==0.110.1
+uvicorn==0.25.0
+pydantic[email]==2.12.5
+python-dotenv==1.2.2
+resend==2.26.0
+reportlab==4.4.10
+pillow==12.1.1

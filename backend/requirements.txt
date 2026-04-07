@@ -1,7 +1,2 @@
-fastapi==0.110.1
-uvicorn==0.25.0
-pydantic[email]==2.12.5
-python-dotenv==1.2.2
-resend==2.26.0
-reportlab==4.4.10
-pillow==12.1.1
+# Re-export root list (paths relative to this file).
+-r ../requirements.txt
