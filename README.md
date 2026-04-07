@@ -35,7 +35,7 @@ During development the **PWA service worker is disabled** (`next.config.mjs`). R
 ## Vercel environment variables
 
 - **`MONGO_URL`**, **`DB_NAME`** — required for saved invoices and next-number on new forms
-- **`RESEND_API_KEY`**, **`SENDER_EMAIL`** — for email
+- **`RESEND_API_KEY`**, **`SENDER_EMAIL`** — for email (inbox shows **`SAITECH Engineering Pty Ltd.`** via `from`; override with optional **`SENDER_DISPLAY_NAME`**)
 
 The web app calls **same-origin** `/invoice-api/...` only.
 

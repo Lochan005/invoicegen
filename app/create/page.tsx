@@ -144,7 +144,7 @@ export default function CreatePage() {
       <header className="pageHeader">
         <h1 className="pageTitle">Create Invoice</h1>
         <p className="pageSubtitle">Fill in the details below</p>
-        <button type="button" className="textLinkBtn" onClick={refreshNewInvoice}>
+        <button type="button" className="primaryBtn startFreshBtn" onClick={refreshNewInvoice}>
           Start fresh
         </button>
       </header>

@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import re
 import logging
 import asyncio
 from pathlib import Path
@@ -37,6 +38,30 @@ load_dotenv(ROOT_DIR / '.env')
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+# Shown as the friendly "From" name in the inbox (not raw noreply@…)
+SENDER_DISPLAY_NAME = os.environ.get('SENDER_DISPLAY_NAME', 'SAITECH Engineering Pty Ltd.').strip()
+
+
+def _email_only_from_env() -> str:
+    """Strip optional `Name <addr>` wrapper; return just addr."""
+    raw = (SENDER_EMAIL or "").strip()
+    if not raw:
+        return "onboarding@resend.dev"
+    m = re.search(r"<([^>]+)>", raw)
+    if m:
+        return m.group(1).strip()
+    return raw
+
+
+def resend_from_header() -> str:
+    """
+    Resend expects `from` like `Acme <billing@domain.com>`.
+    Use a quoted display name so Gmail shows the company, not the local-part (e.g. "noreply").
+    """
+    email = _email_only_from_env()
+    display = SENDER_DISPLAY_NAME or "SAITECH Engineering Pty Ltd."
+    escaped = display.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}" <{email}>'
 
 _mongo_url = os.environ.get("MONGO_URL", "").strip()
 _db_name = os.environ.get("DB_NAME", "").strip()
@@ -442,7 +467,7 @@ async def email_invoice_from_body(body: EmailInvoiceBody):
     </div>"""
 
     params = {
-        "from": SENDER_EMAIL,
+        "from": resend_from_header(),
         "to": [body.recipient_email],
         "subject": subject,
         "html": html_content,

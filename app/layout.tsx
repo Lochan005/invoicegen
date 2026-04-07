@@ -1,6 +1,6 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import Link from "next/link";
+import { TopNav } from "../components/TopNav";
 
 export const viewport: Viewport = {
   themeColor: "#2563eb",
@@ -27,11 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <main className="container">
-          <header className="topNav">
-            <Link href="/create">Create</Link>
-            <Link href="/preview">Preview</Link>
-            <Link href="/saved">Saved</Link>
-          </header>
+          <TopNav />
           {children}
         </main>
       </body>
