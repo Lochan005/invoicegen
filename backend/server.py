@@ -40,7 +40,13 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+# Longer timeouts help Atlas + cold starts on Vercel serverless
+client = AsyncIOMotorClient(
+    mongo_url,
+    serverSelectionTimeoutMS=10_000,
+    connectTimeoutMS=10_000,
+    socketTimeoutMS=45_000,
+)
 db = client[os.environ['DB_NAME']]
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
