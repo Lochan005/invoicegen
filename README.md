@@ -1,6 +1,6 @@
 # Quick Invoice PWA
 
-Single-repo **Next.js** app (mobile-first) with a **Python + ReportLab** PDF pipeline on Vercel at **`/invoice-api/*`** (not `/api`, so Next.js does not intercept) via `server.py` → `backend/server.py`.
+Single-repo **Next.js** app (mobile-first) with a **Python + ReportLab** PDF pipeline on Vercel at **`/invoice-api/*`** (public path; not Next’s `/app/api`) via **`api/server.py`** → `backend/server.py`.
 
 Invoice data stays in the **browser** (`localStorage` drafts). **Download PDF** and **email** call stateless API routes that accept the invoice JSON in the request body (no database).
 
@@ -30,7 +30,7 @@ During development the **PWA service worker is disabled** (`next.config.mjs`). R
 - `components/` — Reusable form UI
 - `lib/` — Invoice types, totals, draft counter, API payload helpers
 - `backend/server.py` — FastAPI (PDF + optional Resend email)
-- `server.py` — Vercel Python entry that imports the FastAPI app
+- `api/server.py` — Vercel Python entry (under `api/` so dependencies install correctly)
 - `vercel.json` — routes `/invoice-api/*` to Python, everything else to Next
 
 ## Vercel environment variables

@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "server.py",
+      "src": "api/server.py",
       "use": "@vercel/python"
     },
     {
@@ -13,11 +13,11 @@
   "routes": [
     {
       "src": "/invoice-api",
-      "dest": "/server.py"
+      "dest": "/api/server.py"
     },
     {
       "src": "/invoice-api/(.*)",
-      "dest": "/server.py"
+      "dest": "/api/server.py"
     },
     {
       "src": "/(.*)",

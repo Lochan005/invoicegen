@@ -1,7 +1,13 @@
 [project]
-name = "invoice-pwa"
+name = "invoicegen-api"
 version = "0"
-description = "Vercel FastAPI entry via backend.server"
-
-[project.scripts]
-app = "backend.server:app"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.110.1",
+  "uvicorn==0.25.0",
+  "pydantic[email]==2.12.5",
+  "python-dotenv==1.2.2",
+  "resend==2.26.0",
+  "reportlab==4.4.10",
+  "pillow==12.1.1",
+]

@@ -13,7 +13,7 @@ const nextConfig = {
   /**
    * Local dev only: proxy /invoice-api to uvicorn.
    * In production (Vercel build), rewrites must stay empty so /invoice-api is handled by
-   * vercel.json → server.py. If BACKEND_PROXY_URL is set on Vercel, a rewrite would try
+   * vercel.json → api/server.py. If BACKEND_PROXY_URL is set on Vercel, a rewrite would try
    * 127.0.0.1:8000 inside the cloud and return HTTP 500 HTML.
    */
   async rewrites() {
