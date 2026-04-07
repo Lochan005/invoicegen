@@ -17,6 +17,22 @@ function localDevApiHint(): string {
   );
 }
 
+function vercelApiHint(): string {
+  return (
+    " On Vercel: do not set BACKEND_PROXY_URL in project env (that breaks /invoice-api). " +
+    "Open the deployment Logs → filter for the Python / serverless function. " +
+    "Sanity-check GET /invoice-api/ in the browser."
+  );
+}
+
+function proxyFailureHint(): string {
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname;
+    if (h !== "localhost" && h !== "127.0.0.1") return vercelApiHint();
+  }
+  return localDevApiHint();
+}
+
 export function summarizeApiFailure(res: Response, bodyText: string): string {
   const status = res.status;
   const ct = res.headers.get("content-type");
@@ -29,8 +45,8 @@ export function summarizeApiFailure(res: Response, bodyText: string): string {
     }
     if (status === 500 || status === 502 || status === 503) {
       return (
-        `Next.js could not reach the Python API (HTTP ${status}, HTML response).` +
-        localDevApiHint()
+        `Could not get a JSON response from the invoice API (HTTP ${status}, HTML error page).` +
+        proxyFailureHint()
       );
     }
     return `Server returned HTML instead of JSON (HTTP ${status}). Is the API running?`;
@@ -41,7 +57,7 @@ export function summarizeApiFailure(res: Response, bodyText: string): string {
     const d = data?.detail;
     if (typeof d === "string") {
       if (d === "Internal Server Error" && status >= 500) {
-        return `${d}.${localDevApiHint()}`;
+        return `${d}.${proxyFailureHint()}`;
       }
       return d;
     }

@@ -10,8 +10,14 @@ const withPWA = withPWAInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  /** Local dev: proxy /invoice-api to FastAPI (matches vercel.json). */
+  /**
+   * Local dev only: proxy /invoice-api to uvicorn.
+   * In production (Vercel build), rewrites must stay empty so /invoice-api is handled by
+   * vercel.json → server.py. If BACKEND_PROXY_URL is set on Vercel, a rewrite would try
+   * 127.0.0.1:8000 inside the cloud and return HTTP 500 HTML.
+   */
   async rewrites() {
+    if (process.env.NODE_ENV === "production") return [];
     const backend = process.env.BACKEND_PROXY_URL?.trim().replace(/\/+$/, "");
     if (!backend) return [];
     return [{ source: "/invoice-api/:path*", destination: `${backend}/invoice-api/:path*` }];
