@@ -9,6 +9,9 @@ export default function PreviewPage() {
   const [invoice, setInvoice] = useState<Invoice>(emptyInvoice());
   const [downloading, setDownloading] = useState(false);
   const [emailing, setEmailing] = useState(false);
+  const [saveAfterEmailOpen, setSaveAfterEmailOpen] = useState(false);
+  const [emailSuccessSummary, setEmailSuccessSummary] = useState("");
+  const [saving, setSaving] = useState(false);
   const totals = useMemo(() => computeTotals(invoice.line_items), [invoice.line_items]);
 
   useEffect(() => {
@@ -68,7 +71,8 @@ export default function PreviewPage() {
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
-      alert(`Invoice #${invoice.invoice_number} has been emailed to ${clientEmail}`);
+      setEmailSuccessSummary(`Invoice #${invoice.invoice_number} was sent to ${clientEmail}.`);
+      setSaveAfterEmailOpen(true);
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
     } finally {
@@ -76,10 +80,68 @@ export default function PreviewPage() {
     }
   };
 
+  const saveInvoiceFromModal = async () => {
+    if (!invoice.invoice_number.trim()) {
+      alert("Invoice number is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      const body = toInvoiceCreateBody(invoice);
+      const url = invoice.id ? apiUrl(`/invoice-api/invoices/${invoice.id}`) : apiUrl("/invoice-api/invoices");
+      const method = invoice.id ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const saved = await parseJsonResponse<Invoice>(res);
+      setInvoice(saved);
+      localStorage.setItem("invoice:draft", JSON.stringify(saved));
+      if (saved.id) localStorage.setItem("invoice:activeId", saved.id);
+      setSaveAfterEmailOpen(false);
+      setEmailSuccessSummary("");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const dismissSaveModal = () => {
+    setSaveAfterEmailOpen(false);
+    setEmailSuccessSummary("");
+  };
+
   const client = invoice.client_details;
 
   return (
     <div className="previewScreen">
+      {saveAfterEmailOpen ? (
+        <div
+          className="modalOverlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="save-after-email-title"
+        >
+          <div className="modalCard">
+            <h2 id="save-after-email-title" className="modalTitle">
+              Email sent
+            </h2>
+            <p className="modalText">{emailSuccessSummary}</p>
+            <div className="modalActions">
+              <button type="button" className="primaryBtn saveBtn" onClick={saveInvoiceFromModal} disabled={saving}>
+                {saving ? "Saving…" : invoice.id ? "Update saved invoice" : "Save invoice"}
+              </button>
+              <button type="button" className="modalSecondaryBtn" onClick={dismissSaveModal} disabled={saving}>
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <header className="previewHeader">
         <h1 className="previewHeaderTitle">Invoice Preview</h1>
       </header>

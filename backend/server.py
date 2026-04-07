@@ -1,6 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import asyncio
@@ -36,6 +37,20 @@ load_dotenv(ROOT_DIR / '.env')
 
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+
+_mongo_url = os.environ.get("MONGO_URL", "").strip()
+_db_name = os.environ.get("DB_NAME", "").strip()
+if _mongo_url and _db_name:
+    mongo_client = AsyncIOMotorClient(
+        _mongo_url,
+        serverSelectionTimeoutMS=10_000,
+        connectTimeoutMS=10_000,
+        socketTimeoutMS=45_000,
+    )
+    mongo_db = mongo_client[_db_name]
+else:
+    mongo_client = None
+    mongo_db = None
 
 app = FastAPI()
 app.add_middleware(
@@ -331,6 +346,75 @@ def generate_invoice_pdf(invoice: Invoice) -> bytes:
 async def root():
     return {"message": "Invoice Generator API"}
 
+def _require_db():
+    if mongo_db is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Database not configured. Set MONGO_URL and DB_NAME on the server.",
+        )
+
+@api_router.get("/invoices/next-number")
+async def get_next_invoice_number():
+    _require_db()
+    invoices = await mongo_db.invoices.find({}, {"invoice_number": 1, "_id": 0}).to_list(1000)
+    numbers = []
+    for inv in invoices:
+        try:
+            numbers.append(int(inv.get("invoice_number", "0")))
+        except (ValueError, TypeError):
+            pass
+    next_num = max(numbers) + 1 if numbers else 1
+    return {"next_number": str(next_num).zfill(3)}
+
+@api_router.get("/invoices")
+async def list_invoices():
+    _require_db()
+    invoices = await mongo_db.invoices.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return invoices
+
+@api_router.get("/invoices/{invoice_id}")
+async def get_invoice(invoice_id: str):
+    _require_db()
+    invoice = await mongo_db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return invoice
+
+@api_router.post("/invoices")
+async def create_invoice(data: InvoiceCreate):
+    _require_db()
+    subtotal, gst_total, total = calculate_totals(data.line_items)
+    payload = data.model_dump()
+    inv = Invoice(**payload, subtotal=subtotal, gst_total=gst_total, total=total)
+    invoice_dict = inv.model_dump()
+    await mongo_db.invoices.insert_one({**invoice_dict})
+    return invoice_dict
+
+@api_router.put("/invoices/{invoice_id}")
+async def update_invoice(invoice_id: str, data: InvoiceCreate):
+    _require_db()
+    subtotal, gst_total, total = calculate_totals(data.line_items)
+    update_dict = data.model_dump()
+    update_dict.update(
+        subtotal=subtotal,
+        gst_total=gst_total,
+        total=total,
+        updated_at=datetime.now(timezone.utc).isoformat(),
+    )
+    result = await mongo_db.invoices.update_one({"id": invoice_id}, {"$set": update_dict})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    updated_doc = await mongo_db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    return updated_doc
+
+@api_router.delete("/invoices/{invoice_id}")
+async def delete_invoice(invoice_id: str):
+    _require_db()
+    result = await mongo_db.invoices.delete_one({"id": invoice_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return {"status": "deleted"}
+
 @api_router.post("/pdf")
 async def generate_pdf_from_body(data: InvoiceCreate):
     invoice = build_invoice(data)
@@ -377,6 +461,12 @@ async def email_invoice_from_body(body: EmailInvoiceBody):
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
 app.include_router(api_router)
+
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    if mongo_client is not None:
+        mongo_client.close()
 
 
 @app.get("/")

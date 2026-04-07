@@ -6,10 +6,22 @@ import { DateField } from "../../components/DateField";
 import { FormInput } from "../../components/FormInput";
 import { FormSection } from "../../components/FormSection";
 import { ProductPicker } from "../../components/ProductPicker";
+import { apiUrl, parseJsonResponse } from "../../lib/api";
 import { addOneMonth } from "../../lib/date";
-import { peekNextInvoiceNumber, rememberInvoiceNumber } from "../../lib/invoiceSequence";
+import { peekNextInvoiceNumber } from "../../lib/invoiceSequence";
 import { computeTotals, COMPANY, emptyInvoice, type Invoice, type LineItem } from "../../lib/invoice";
 import { newId } from "../../lib/newId";
+
+async function fetchNextInvoiceNumberFromApi(): Promise<string | null> {
+  const res = await fetch(apiUrl("/invoice-api/invoices/next-number"));
+  if (!res.ok) return null;
+  try {
+    const data = await parseJsonResponse<{ next_number?: string }>(res);
+    return data?.next_number?.trim() || null;
+  } catch {
+    return null;
+  }
+}
 
 export default function CreatePage() {
   const router = useRouter();
@@ -22,15 +34,42 @@ export default function CreatePage() {
       try {
         const parsed = JSON.parse(raw) as Invoice;
         if (parsed?.line_items?.length) {
-          const num = parsed.invoice_number?.trim();
-          setInvoice({ ...parsed, invoice_number: num || peekNextInvoiceNumber() });
+          setInvoice(parsed);
           return;
         }
       } catch {
         /* ignore */
       }
     }
-    setInvoice({ ...emptyInvoice(), invoice_number: peekNextInvoiceNumber() });
+
+    let cancelled = false;
+    setInvoice(emptyInvoice());
+
+    (async () => {
+      const next = await fetchNextInvoiceNumberFromApi();
+      if (cancelled) return;
+      setInvoice((prev) => ({
+        ...prev,
+        invoice_number: next || peekNextInvoiceNumber(),
+      }));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const refreshNewInvoice = useCallback(() => {
+    localStorage.removeItem("invoice:draft");
+    localStorage.removeItem("invoice:activeId");
+    setInvoice(emptyInvoice());
+    void (async () => {
+      const next = await fetchNextInvoiceNumberFromApi();
+      setInvoice((prev) => ({
+        ...emptyInvoice(),
+        invoice_number: next || peekNextInvoiceNumber(),
+      }));
+    })();
   }, []);
 
   const updateClient = useCallback((field: keyof Invoice["client_details"], value: string) => {
@@ -89,7 +128,6 @@ export default function CreatePage() {
       alert("Please enter an invoice number");
       return;
     }
-    rememberInvoiceNumber(invoice.invoice_number.trim());
     const t = computeTotals(invoice.line_items);
     const draft: Invoice = {
       ...invoice,
@@ -106,14 +144,7 @@ export default function CreatePage() {
       <header className="pageHeader">
         <h1 className="pageTitle">Create Invoice</h1>
         <p className="pageSubtitle">Fill in the details below</p>
-        <button
-          type="button"
-          className="textLinkBtn"
-          onClick={() => {
-            localStorage.removeItem("invoice:draft");
-            setInvoice({ ...emptyInvoice(), invoice_number: peekNextInvoiceNumber() });
-          }}
-        >
+        <button type="button" className="textLinkBtn" onClick={refreshNewInvoice}>
           Start fresh
         </button>
       </header>
@@ -164,7 +195,7 @@ export default function CreatePage() {
           label="Invoice Number"
           value={invoice.invoice_number}
           onChange={(v) => updateField("invoice_number", v)}
-          placeholder="Auto-suggested"
+          placeholder="From saved invoices (API)"
         />
         <DateField label="Invoice Date" value={invoice.invoice_date} onChange={handleInvoiceDateChange} />
         <DateField

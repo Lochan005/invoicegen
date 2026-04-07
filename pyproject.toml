@@ -8,6 +8,9 @@ dependencies = [
   "pydantic[email]==2.12.5",
   "python-dotenv==1.2.2",
   "resend==2.26.0",
+  "dnspython>=2.6,<3",
+  "motor==3.6.1",
+  "pymongo>=4.9,<5",
   "reportlab==4.4.10",
   "pillow==12.1.1",
 ]
