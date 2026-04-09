@@ -10,15 +10,17 @@ export function DateField({ label, value, onChange }: Props) {
   return (
     <div className="formField">
       <label className="formLabel">{label}</label>
-      <input
-        className="formInput"
-        type="date"
-        value={toHTMLDate(value)}
-        onChange={(e) => {
-          const v = e.target.value;
-          if (v) onChange(fromHTMLDate(v));
-        }}
-      />
+      <div className="dateInputShell">
+        <input
+          className="formInput formInputDate"
+          type="date"
+          value={toHTMLDate(value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v) onChange(fromHTMLDate(v));
+          }}
+        />
+      </div>
     </div>
   );
 }

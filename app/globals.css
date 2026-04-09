@@ -164,6 +164,7 @@ body {
   border: 1px solid var(--gray-200);
   padding: 16px;
   box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+  min-width: 0;
 }
 
 .formField {
@@ -190,12 +191,50 @@ body {
   background: #fff;
 }
 
-/* Native date/datetime inputs use a wide intrinsic min-width on mobile — keeps fields inside cards */
-.formInput[type="date"],
+/* Date inputs: outer width + shell overflow + WebKit inner flex (otherwise bleeds past card on iOS/Android) */
+.dateInputShell {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.formInputDate,
 .formInput[type="datetime-local"],
 .formInput[type="time"] {
-  min-width: 0;
+  display: block;
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Chromium/WebKit: shrink the internal date segments flex row */
+.formInputDate::-webkit-datetime-edit,
+.formInput[type="datetime-local"]::-webkit-datetime-edit {
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+}
+
+.formInputDate::-webkit-datetime-edit-fields-wrapper,
+.formInput[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+}
+
+.formInputDate::-webkit-datetime-edit-text,
+.formInput[type="datetime-local"]::-webkit-datetime-edit-text {
+  padding: 0 0.15em;
+}
+
+/* Keep calendar control inside the padded field */
+.formInputDate::-webkit-calendar-picker-indicator {
+  flex-shrink: 0;
+  margin-inline-start: 0.25rem;
 }
 
 .formTextarea {
@@ -300,6 +339,7 @@ body {
   padding: 12px;
   margin-bottom: 12px;
   border: 1px solid var(--gray-200);
+  min-width: 0;
 }
 
 .lineItemHeader {
