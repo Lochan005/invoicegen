@@ -39,6 +39,12 @@ export function toDdMmYyyy(day: number, month: number, year: number): string {
   return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
 }
 
+/** Local calendar today as DD/MM/YYYY */
+export function todayDdMmYyyy(): string {
+  const d = new Date();
+  return toDdMmYyyy(d.getDate(), d.getMonth() + 1, d.getFullYear());
+}
+
 export function addOneMonth(ddmmyyyy: string): string {
   const parts = ddmmyyyy.split("/");
   if (parts.length !== 3) return "";

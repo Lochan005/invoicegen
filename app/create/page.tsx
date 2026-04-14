@@ -7,7 +7,7 @@ import { FormInput } from "../../components/FormInput";
 import { FormSection } from "../../components/FormSection";
 import { ProductPicker } from "../../components/ProductPicker";
 import { apiUrl, parseJsonResponse } from "../../lib/api";
-import { addOneMonth } from "../../lib/date";
+import { addOneMonth, todayDdMmYyyy } from "../../lib/date";
 import { peekNextInvoiceNumber } from "../../lib/invoiceSequence";
 import { computeTotals, COMPANY, emptyInvoice, type Invoice, type LineItem } from "../../lib/invoice";
 import { newId } from "../../lib/newId";
@@ -62,11 +62,16 @@ export default function CreatePage() {
   const refreshNewInvoice = useCallback(() => {
     localStorage.removeItem("invoice:draft");
     localStorage.removeItem("invoice:activeId");
-    setInvoice(emptyInvoice());
+    const today = todayDdMmYyyy();
+    setInvoice({
+      ...emptyInvoice(),
+      invoice_date: today,
+      due_date: addOneMonth(today),
+    });
     void (async () => {
       const next = await fetchNextInvoiceNumberFromApi();
       setInvoice((prev) => ({
-        ...emptyInvoice(),
+        ...prev,
         invoice_number: next || peekNextInvoiceNumber(),
       }));
     })();

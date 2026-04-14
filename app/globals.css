@@ -191,27 +191,50 @@ body {
   background: #fff;
 }
 
-.dateDropdownRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr);
-  gap: 8px;
+/* Date inputs: outer width + shell overflow + WebKit inner flex (otherwise bleeds past card on iOS/Android) */
+.dateInputShell {
+  display: block;
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  overflow: hidden;
+  border-radius: 8px;
 }
 
-.dateDropdown {
+.formInputDate,
+.formInput[type="datetime-local"],
+.formInput[type="time"] {
+  display: block;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  min-height: 44px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 0 8px;
-  font-size: 15px;
-  color: var(--gray-900);
-  background: #fff;
   box-sizing: border-box;
+}
+
+/* Chromium/WebKit: shrink the internal date segments flex row */
+.formInputDate::-webkit-datetime-edit,
+.formInput[type="datetime-local"]::-webkit-datetime-edit {
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+}
+
+.formInputDate::-webkit-datetime-edit-fields-wrapper,
+.formInput[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+}
+
+.formInputDate::-webkit-datetime-edit-text,
+.formInput[type="datetime-local"]::-webkit-datetime-edit-text {
+  padding: 0 0.15em;
+}
+
+/* Keep calendar control inside the padded field */
+.formInputDate::-webkit-calendar-picker-indicator {
+  flex-shrink: 0;
+  margin-inline-start: 0.25rem;
 }
 
 .formTextarea {

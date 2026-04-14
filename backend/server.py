@@ -455,11 +455,15 @@ async def email_invoice_from_body(body: EmailInvoiceBody):
 
     subject = body.subject or f"Invoice #{invoice.invoice_number}"
     message = body.message or f"Please find attached Invoice #{invoice.invoice_number}."
+    # App UI does not send issuer in company_details; match envelope display name (SENDER_DISPLAY_NAME).
+    email_from_name = (invoice.company_details.company_name or "").strip() or (
+        SENDER_DISPLAY_NAME or "SAITECH Engineering Pty Ltd."
+    )
     html_content = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <h2 style="color:#2563EB;">Invoice #{invoice.invoice_number}</h2>
         <p>{message}</p>
         <table style="width:100%;border-collapse:collapse;margin:20px 0;">
-            <tr><td style="padding:8px;border-bottom:1px solid #eee;"><strong>From:</strong></td><td style="padding:8px;border-bottom:1px solid #eee;">{invoice.company_details.company_name}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #eee;"><strong>From:</strong></td><td style="padding:8px;border-bottom:1px solid #eee;">{email_from_name}</td></tr>
             <tr><td style="padding:8px;border-bottom:1px solid #eee;"><strong>To:</strong></td><td style="padding:8px;border-bottom:1px solid #eee;">{invoice.client_details.company_name}</td></tr>
             <tr><td style="padding:8px;border-bottom:1px solid #eee;"><strong>Amount:</strong></td><td style="padding:8px;border-bottom:1px solid #eee;">A${invoice.total:.2f}</td></tr>
             <tr><td style="padding:8px;"><strong>Due Date:</strong></td><td style="padding:8px;">{invoice.due_date}</td></tr>
