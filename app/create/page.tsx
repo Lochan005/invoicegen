@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ClientImportPicker } from "../../components/ClientImportPicker";
 import { DateField } from "../../components/DateField";
 import { FormInput } from "../../components/FormInput";
 import { FormSection } from "../../components/FormSection";
@@ -9,7 +10,7 @@ import { ProductPicker } from "../../components/ProductPicker";
 import { apiUrl, parseJsonResponse } from "../../lib/api";
 import { addOneMonth, todayDdMmYyyy } from "../../lib/date";
 import { peekNextInvoiceNumber } from "../../lib/invoiceSequence";
-import { computeTotals, COMPANY, emptyInvoice, type Invoice, type LineItem } from "../../lib/invoice";
+import { computeTotals, COMPANY, emptyInvoice, type CompanyDetails, type Invoice, type LineItem } from "../../lib/invoice";
 import { newId } from "../../lib/newId";
 
 async function fetchNextInvoiceNumberFromApi(): Promise<string | null> {
@@ -81,6 +82,13 @@ export default function CreatePage() {
     setInvoice((prev) => ({
       ...prev,
       client_details: { ...prev.client_details, [field]: value },
+    }));
+  }, []);
+
+  const applyImportedClient = useCallback((client: CompanyDetails) => {
+    setInvoice((prev) => ({
+      ...prev,
+      client_details: { ...client },
     }));
   }, []);
 
@@ -161,7 +169,7 @@ export default function CreatePage() {
         </div>
       </div>
 
-      <FormSection title="Invoice To">
+      <FormSection title="Invoice To" headerExtra={<ClientImportPicker onApply={applyImportedClient} />}>
         <FormInput
           label="Company Name"
           value={invoice.client_details.company_name}

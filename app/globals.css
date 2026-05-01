@@ -149,13 +149,84 @@ body {
   margin-bottom: 20px;
 }
 
+.formSectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding: 0 4px;
+  min-width: 0;
+}
+
 .formSectionTitle {
   font-size: 13px;
   font-weight: 700;
   color: var(--gray-500);
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  margin: 0 0 8px 4px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.importClientBtn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue);
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.importClientBtn:hover {
+  background: #dbeafe;
+}
+
+.importPickerStatus,
+.importPickerError {
+  margin: 0 16px 12px;
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+.importPickerError {
+  color: #b45309;
+}
+
+.modalSheetScroll {
+  max-height: min(70dvh, 520px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.modalSheetScroll .productList {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.clientImportOption {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
+.clientImportPrimary {
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.clientImportSecondary {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-500);
 }
 
 .formSectionCard {
