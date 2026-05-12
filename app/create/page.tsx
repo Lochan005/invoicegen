@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ClientImportPicker } from "../../components/ClientImportPicker";
+import { DecimalFormInput } from "../../components/DecimalFormInput";
 import { DateField } from "../../components/DateField";
 import { FormInput } from "../../components/FormInput";
 import { FormSection } from "../../components/FormSection";
@@ -253,17 +254,15 @@ export default function CreatePage() {
               </label>
             </div>
             <div className="qtyRateRow">
-              <FormInput
+              <DecimalFormInput
                 label="Qty"
-                value={String(item.quantity)}
-                onChange={(v) => updateLineItem(item.id, "quantity", parseFloat(v) || 0)}
-                inputMode="decimal"
+                value={item.quantity}
+                onValueChange={(n) => updateLineItem(item.id, "quantity", n)}
               />
-              <FormInput
+              <DecimalFormInput
                 label="Rate"
-                value={String(item.rate)}
-                onChange={(v) => updateLineItem(item.id, "rate", parseFloat(v) || 0)}
-                inputMode="decimal"
+                value={item.rate}
+                onValueChange={(n) => updateLineItem(item.id, "rate", n)}
               />
               <div className="amountBox">
                 <span className="amountLabel">Amount</span>
