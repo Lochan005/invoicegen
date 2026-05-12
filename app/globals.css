@@ -817,6 +817,10 @@ body {
   color: #000;
 }
 
+.tdDesc {
+  white-space: pre-line;
+}
+
 .tdGst,
 .tdQty {
   text-align: center;

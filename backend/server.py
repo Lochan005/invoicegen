@@ -4,6 +4,7 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import re
+import html
 import logging
 import asyncio
 from pathlib import Path
@@ -160,6 +161,15 @@ def build_invoice(data: InvoiceCreate) -> Invoice:
     subtotal, gst_total, total = calculate_totals(data.line_items)
     return Invoice(**data.model_dump(), subtotal=subtotal, gst_total=gst_total, total=total)
 
+
+def _paragraph_markup_from_plain(text: str) -> str:
+    """Escape XML-sensitive chars and preserve user line breaks for ReportLab Paragraph."""
+    if not text:
+        return ""
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    return html.escape(normalized, quote=False).replace("\n", "<br/>")
+
+
 def generate_invoice_pdf(invoice: Invoice) -> bytes:
     buffer = io.BytesIO()
     page_w, page_h = A4
@@ -279,7 +289,7 @@ def generate_invoice_pdf(invoice: Invoice) -> bytes:
         table_data.append([
             Paragraph(item.service_date, s_td),
             Paragraph(item.product, s_td_bold),
-            Paragraph(item.description, s_td),
+            Paragraph(_paragraph_markup_from_plain(item.description), s_td),
             Paragraph("GST" if item.gst_applicable else "", s_td),
             Paragraph(qty_str, s_td),
             Paragraph(f"{item.rate:.2f}", s_td_right),
