@@ -9,6 +9,67 @@ function normInvNum(s: string): string {
   return s.trim();
 }
 
+/** Save draft to Mongo (PUT/POST). Returns null when DB unreachable or invoice number missing. */
+async function persistInvoiceToApi(inv: Invoice): Promise<Invoice | null> {
+  if (!normInvNum(inv.invoice_number)) return null;
+  try {
+    const body = toInvoiceCreateBody(inv);
+    let saved: Invoice;
+
+    if (inv.id) {
+      const res = await fetch(apiUrl(`/invoice-api/invoices/${inv.id}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      saved = await parseJsonResponse<Invoice>(res);
+    } else {
+      const listRes = await fetch(apiUrl("/invoice-api/invoices"));
+      if (listRes.ok) {
+        const list = await parseJsonResponse<Invoice[]>(listRes);
+        const hit = list.find((r) => normInvNum(r.invoice_number) === normInvNum(inv.invoice_number));
+        if (hit?.id) {
+          const res = await fetch(apiUrl(`/invoice-api/invoices/${hit.id}`), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) throw new Error(await parseApiError(res));
+          saved = await parseJsonResponse<Invoice>(res);
+        } else {
+          const res = await fetch(apiUrl("/invoice-api/invoices"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) throw new Error(await parseApiError(res));
+          saved = await parseJsonResponse<Invoice>(res);
+        }
+      } else {
+        const res = await fetch(apiUrl("/invoice-api/invoices"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(await parseApiError(res));
+        saved = await parseJsonResponse<Invoice>(res);
+      }
+    }
+
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
+type EmailInvoiceResponse = {
+  status: string;
+  message: string;
+  email_id?: string | null;
+  invoice_sent_patch?: Partial<Pick<Invoice, "status" | "sent_at" | "resend_message_id">>;
+};
+
 export default function PreviewPage() {
   const [invoice, setInvoice] = useState<Invoice>(emptyInvoice());
   const [downloading, setDownloading] = useState(false);
@@ -27,62 +88,19 @@ export default function PreviewPage() {
     }
   }, []);
 
-  /** Persist invoice once per preview session after download or email (no duplicate POST for same visit). */
+  /** Persist invoice once per preview session after download (no duplicate POST for same visit). */
   const autoSaveAfterSuccess = async (inv: Invoice) => {
     if (!normInvNum(inv.invoice_number)) return;
     if (didAutoSaveRef.current) return;
-    try {
-      const body = toInvoiceCreateBody(inv);
-      let saved: Invoice;
-
-      if (inv.id) {
-        const res = await fetch(apiUrl(`/invoice-api/invoices/${inv.id}`), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) throw new Error(await parseApiError(res));
-        saved = await parseJsonResponse<Invoice>(res);
-      } else {
-        const listRes = await fetch(apiUrl("/invoice-api/invoices"));
-        if (listRes.ok) {
-          const list = await parseJsonResponse<Invoice[]>(listRes);
-          const hit = list.find((r) => normInvNum(r.invoice_number) === normInvNum(inv.invoice_number));
-          if (hit?.id) {
-            const res = await fetch(apiUrl(`/invoice-api/invoices/${hit.id}`), {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-            });
-            if (!res.ok) throw new Error(await parseApiError(res));
-            saved = await parseJsonResponse<Invoice>(res);
-          } else {
-            const res = await fetch(apiUrl("/invoice-api/invoices"), {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-            });
-            if (!res.ok) throw new Error(await parseApiError(res));
-            saved = await parseJsonResponse<Invoice>(res);
-          }
-        } else {
-          const res = await fetch(apiUrl("/invoice-api/invoices"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
-          if (!res.ok) throw new Error(await parseApiError(res));
-          saved = await parseJsonResponse<Invoice>(res);
-        }
-      }
-
-      setInvoice(saved);
-      localStorage.setItem("invoice:draft", JSON.stringify(saved));
-      if (saved.id) localStorage.setItem("invoice:activeId", saved.id);
-      didAutoSaveRef.current = true;
-    } catch (err) {
-      console.warn("Auto-save skipped (database unavailable or error):", err);
+    const saved = await persistInvoiceToApi(inv);
+    if (!saved) {
+      console.warn("Auto-save skipped (database unavailable or error)");
+      return;
     }
+    setInvoice(saved);
+    localStorage.setItem("invoice:draft", JSON.stringify(saved));
+    if (saved.id) localStorage.setItem("invoice:activeId", saved.id);
+    didAutoSaveRef.current = true;
   };
 
   const handleDownloadPdf = async () => {
@@ -121,18 +139,38 @@ export default function PreviewPage() {
     }
     setEmailing(true);
     try {
+      const persisted = await persistInvoiceToApi(invoice);
+      const baseInv = persisted ?? invoice;
+      if (persisted) {
+        setInvoice(persisted);
+        localStorage.setItem("invoice:draft", JSON.stringify(persisted));
+        if (persisted.id) localStorage.setItem("invoice:activeId", persisted.id);
+        didAutoSaveRef.current = true;
+      }
+
+      const emailBody: Record<string, unknown> = {
+        invoice: toInvoiceCreateBody(baseInv),
+        recipient_email: clientEmail,
+        subject: `Invoice #${invoice.invoice_number}`,
+        message: `Please find attached Invoice #${invoice.invoice_number}.`,
+      };
+      if (baseInv.id) emailBody.invoice_id = baseInv.id;
+
       const res = await fetch(apiUrl("/invoice-api/email-invoice"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invoice: toInvoiceCreateBody(invoice),
-          recipient_email: clientEmail,
-          subject: `Invoice #${invoice.invoice_number}`,
-          message: `Please find attached Invoice #${invoice.invoice_number}.`,
-        }),
+        body: JSON.stringify(emailBody),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
-      await autoSaveAfterSuccess(invoice);
+      const data = await parseJsonResponse<EmailInvoiceResponse>(res);
+
+      let merged = baseInv;
+      if (data.invoice_sent_patch) {
+        merged = { ...baseInv, ...data.invoice_sent_patch };
+      }
+      setInvoice(merged);
+      localStorage.setItem("invoice:draft", JSON.stringify(merged));
+      if (merged.id) localStorage.setItem("invoice:activeId", merged.id);
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
     } finally {

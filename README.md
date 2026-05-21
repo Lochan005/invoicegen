@@ -2,7 +2,7 @@
 
 Single-repo **Next.js** app (mobile-first) with a **Python + ReportLab** PDF pipeline on Vercel at **`/invoice-api/*`** via **`api/server.py`** → `backend/server.py`.
 
-Drafts live in **`localStorage`**. **Saved invoices** are stored in **MongoDB** (`/invoice-api/invoices/...`). **Download PDF** and **email** use stateless routes that accept invoice JSON in the body. After a successful **email**, Preview shows a **centered dialog** to **save** (or update) the invoice in MongoDB.
+Drafts live in **`localStorage`**. **Saved invoices** are stored in **MongoDB** (`/invoice-api/invoices/...`). **Download PDF** and **email** use routes that accept invoice JSON in the body. **Email** saves the invoice to MongoDB when possible (so it has an `id`), sends via Resend with the PDF attached, then sets **`status: "sent"`**, **`sent_at`**, and **`resend_message_id`** on that row. **Saved** shows a green **Sent** tag on invoices that were emailed successfully.
 
 ## Run locally
 
@@ -22,8 +22,8 @@ During development the **PWA service worker is disabled** (`next.config.mjs`). R
 ## Flow
 
 1. **Create** — invoice number is loaded from **`GET /invoice-api/invoices/next-number`** when MongoDB is configured (otherwise a local fallback). **Preview invoice** stores the draft locally.
-2. **Preview** — **Download PDF** / **Email invoice**. After email succeeds, a **modal** offers **Save invoice** (or **Update** if it already has an `id`).
-3. **Saved** — list, open, and delete invoices in MongoDB.
+2. **Preview** — **Download PDF** (auto-saves once per visit when MongoDB is configured) / **Email invoice** (persists first, then emails and records **Sent** in MongoDB).
+3. **Saved** — list, open, and delete invoices; **Sent** badge for successfully emailed ones.
 
 ## Project layout
 

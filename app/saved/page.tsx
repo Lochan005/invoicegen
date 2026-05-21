@@ -109,7 +109,14 @@ export default function SavedPage() {
             <button type="button" className="savedRowMain" onClick={() => openInvoice(inv)}>
               <div className="savedIcon">#{inv.invoice_number || "?"}</div>
               <div className="savedInfo">
-                <div className="savedTitle">Invoice #{inv.invoice_number}</div>
+                <div className="savedTitleRow">
+                  <span className="savedTitle">Invoice #{inv.invoice_number}</span>
+                  {inv.status === "sent" || inv.sent_at ? (
+                    <span className="invoiceSentBadge" title={inv.sent_at ? `Sent ${inv.sent_at}` : "Emailed via app"}>
+                      Sent
+                    </span>
+                  ) : null}
+                </div>
                 <div className="savedSub">
                   {inv.client_details?.company_name || "No client"} · A${(inv.total ?? 0).toFixed(2)}
                 </div>

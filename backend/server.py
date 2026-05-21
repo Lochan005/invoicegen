@@ -9,7 +9,7 @@ import logging
 import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
-from typing import List
+from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
 import base64
@@ -141,6 +141,8 @@ class Invoice(BaseModel):
     total: float = 0.0
     notes: str = ""
     status: str = "saved"
+    sent_at: Optional[str] = None
+    resend_message_id: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -149,6 +151,11 @@ class EmailInvoiceBody(BaseModel):
     recipient_email: EmailStr
     subject: str = ""
     message: str = ""
+    invoice_id: Optional[str] = None
+
+
+class RecordEmailSentBody(BaseModel):
+    resend_message_id: str
 
 # --- Helpers ---
 def calculate_totals(line_items: List[LineItem]):
@@ -388,6 +395,31 @@ def _require_db():
             detail="Database not configured. Set MONGO_URL and DB_NAME on the server.",
         )
 
+
+async def mongo_mark_invoice_sent(invoice_id: str | None, resend_message_id: str | None) -> Optional[dict]:
+    """Set status=sent + Resend ids on Mongo invoice document. Returns JSON patch if matched."""
+    if mongo_db is None:
+        return None
+    iid = (invoice_id or "").strip()
+    if not iid:
+        return None
+    rid = (resend_message_id or "").strip()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    fields = {
+        "status": "sent",
+        "sent_at": now_iso,
+        "resend_message_id": rid,
+        "updated_at": now_iso,
+    }
+    result = await mongo_db.invoices.update_one({"id": iid}, {"$set": fields})
+    if result.matched_count == 0:
+        return None
+    return {
+        "status": fields["status"],
+        "sent_at": fields["sent_at"],
+        "resend_message_id": rid,
+    }
+
 @api_router.get("/invoices/next-number")
 async def get_next_invoice_number():
     _require_db()
@@ -442,6 +474,15 @@ async def update_invoice(invoice_id: str, data: InvoiceCreate):
     updated_doc = await mongo_db.invoices.find_one({"id": invoice_id}, {"_id": 0})
     return updated_doc
 
+@api_router.post("/invoices/{invoice_id}/record-email-sent")
+async def record_invoice_email_sent(invoice_id: str, body: RecordEmailSentBody):
+    """Mark Mongo invoice after Resend queued the message (e.g. retried after email send)."""
+    _require_db()
+    patch = await mongo_mark_invoice_sent(invoice_id, body.resend_message_id)
+    if patch is None:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return {"invoice_sent_patch": patch}
+
 @api_router.delete("/invoices/{invoice_id}")
 async def delete_invoice(invoice_id: str):
     _require_db()
@@ -494,7 +535,16 @@ async def email_invoice_from_body(body: EmailInvoiceBody):
     }
     try:
         email = await asyncio.to_thread(resend.Emails.send, params)
-        return {"status": "success", "message": f"Invoice emailed to {body.recipient_email}", "email_id": email.get("id")}
+        msg_id = str(email.get("id") or "")
+        response: dict = {
+            "status": "success",
+            "message": f"Invoice emailed to {body.recipient_email}",
+            "email_id": msg_id or None,
+        }
+        patch = await mongo_mark_invoice_sent(body.invoice_id, msg_id)
+        if patch is not None:
+            response["invoice_sent_patch"] = patch
+        return response
     except Exception as e:
         logger.error(f"Failed to send email: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")

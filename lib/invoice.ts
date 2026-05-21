@@ -40,6 +40,10 @@ export type Invoice = {
   gst_total: number;
   total: number;
   notes: string;
+  /** Mirrors FastAPI Invoice when stored in MongoDB */
+  status?: string;
+  sent_at?: string;
+  resend_message_id?: string;
 };
 
 export const COMPANY = {
