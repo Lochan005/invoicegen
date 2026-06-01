@@ -106,26 +106,36 @@ export default function SavedPage() {
       ) : (
         invoices.map((inv, index) => (
           <div key={inv.id || `inv-${index}`} className="savedCard">
-            <button type="button" className="savedRowMain" onClick={() => openInvoice(inv)}>
-              <div className="savedIcon">#{inv.invoice_number || "?"}</div>
-              <div className="savedInfo">
-                <div className="savedTitleRow">
-                  <span className="savedTitle">Invoice #{inv.invoice_number}</span>
-                  {inv.status === "sent" || inv.sent_at ? (
-                    <span className="invoiceSentBadge" title={inv.sent_at ? `Sent ${inv.sent_at}` : "Emailed via app"}>
-                      Sent
-                    </span>
-                  ) : null}
+            <div className="savedCardRow">
+              <button type="button" className="savedRowMain" onClick={() => openInvoice(inv)}>
+                <div className="savedIcon">#{inv.invoice_number || "?"}</div>
+                <div className="savedInfo">
+                  <div className="savedTitleRow">
+                    <span className="savedTitle">Invoice #{inv.invoice_number}</span>
+                    {inv.status === "sent" || inv.sent_at ? (
+                      <span className="invoiceSentBadge" title={inv.sent_at ? `Sent ${inv.sent_at}` : "Emailed via app"}>
+                        Sent
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="savedSub">
+                    {inv.client_details?.company_name || "No client"} · A${(inv.total ?? 0).toFixed(2)}
+                  </div>
+                  <div className="savedDate">{inv.invoice_date || "No date"}</div>
                 </div>
-                <div className="savedSub">
-                  {inv.client_details?.company_name || "No client"} · A${(inv.total ?? 0).toFixed(2)}
-                </div>
-                <div className="savedDate">{inv.invoice_date || "No date"}</div>
-              </div>
-            </button>
-            <button type="button" className="savedDeleteBtn" onClick={() => deleteInvoice(inv)}>
-              Delete
-            </button>
+              </button>
+              <button
+                type="button"
+                className="savedDeleteBtn"
+                aria-label={`Delete invoice #${inv.invoice_number}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteInvoice(inv);
+                }}
+              >
+                ×
+              </button>
+            </div>
           </div>
         ))
       )}
