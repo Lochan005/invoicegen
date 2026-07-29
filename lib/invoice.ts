@@ -50,7 +50,7 @@ export const COMPANY = {
   name: "The trustee for SAITECH TRADING TRUST",
   address: ["33 LOWANNAWAY", "ARMADALE WA  6112"],
   phone: "+61 470530451",
-  email: "shiva.prasad1947@gmail.com",
+  email: "saitechengineering2023@gmail.com",
   abn: "ABN 39315636679",
 };
 
